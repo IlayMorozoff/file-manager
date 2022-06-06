@@ -11,13 +11,13 @@ class Application {
       username: this.username,
     });
     this.commandLine = new CommandLine(this.state);
-    console.log(this.state.getState(), 'start')
   }
 
   init() {
     const userHomeDir = os.homedir();
     process.chdir(userHomeDir);
-    process.stdout.write(`Welcome to the File Manager, ${this.username} \n`);
+    console.log(`Welcome to the File Manager, ${this.username} \n`);
+    console.log(`You are currently in ${process.cwd()}`)
   }
 }
 
