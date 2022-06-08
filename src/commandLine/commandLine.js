@@ -2,6 +2,8 @@ import { Navigation } from '../navigation/navigation.js';
 import { Validator } from '../validator/validator.js';
 import fs from 'fs';
 
+const errorInvalidInput = 'Invalid input';
+
 export class CommandLine {
 
   constructor(state) {
@@ -16,60 +18,48 @@ export class CommandLine {
       process.stdin.on('data', async (data) => {
         const command = data.toString().trim().split(' ');
 
+        if (!this.validator.isInvalidInput(command[0])) {
+          console.log(errorInvalidInput);
+        }
+
         const pathToDir = command[1];
         switch (command[0]) {
           case '.exit':
             this.closeProccess();
             break;
           case 'ls':
-            let filesAndFoldes;
             const pathToCurrentFolder = this.state.getState().currentPathDir;
-
-            if (command[1]) {
-              filesAndFoldes = await fs.promises.readdir(command[1]);
-            } else {
-              filesAndFoldes = await fs.promises.readdir(pathToCurrentFolder);
-            }
-            // console.log(filesAndFoldes)
+            const filesAndFoldes = await fs.promises.readdir(pathToCurrentFolder);
             for (let el of filesAndFoldes) {
-              console.log(el)
+              console.log(el);
             }
             break;
-
           case 'up':
-            this.navigation.upToPath(command);
+            await this.navigation.moveToDir();
             break;
           case 'cd':
             if (pathToDir) {
               await this.navigation.moveToDir(pathToDir);
             }
             break;
-          default:
-            if (!this.validator.isInvalidInput(command[0])) {
-              console.log('Invalid input');
-              // throw new Error('Invalid input');
-              // TODO: ERROR???
-            }
-            break;
         }
+
         this.printCurrentPathToWorkingDir()
       });
       process.on('SIGINT', this.closeProccess.bind(this));
     } catch (error) {
-      console.log('Invalid input');
+      console.log(errorInvalidInput);
     }
   }
 
   closeProccess() {
     const state = this.state.getState();
-
     process.stdout.write(`Thank you for using File Manager, ${state.username} \n`);
     process.exit(0);
   }
 
   printCurrentPathToWorkingDir() {
     const curentPathToDir = this.state.getState().currentPathDir;
-
     console.log(`You are currently in ${curentPathToDir}`);
   }
 }
