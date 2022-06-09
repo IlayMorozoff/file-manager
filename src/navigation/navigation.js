@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 
-const errorOperationFailed = 'Operation failed';
+export const errorOperationFailed = 'Operation failed';
 
 export class Navigation {
 
@@ -9,20 +9,34 @@ export class Navigation {
     this.state = state;
   }
 
-  async moveToDir(pathToFolder) {
+  async moveToDir(pathToFolder, isDir) {
     try {
       const currentPathDir = this.state.getState().currentPathDir;
       const newPath = path.join(currentPathDir, pathToFolder ? pathToFolder : '..');
 
-      const folder = pathToFolder.includes(currentPathDir) || currentPathDir.includes(pathToFolder) ? pathToFolder : newPath;
+      const isValidPath = pathToFolder.includes(currentPathDir) || currentPathDir.includes(pathToFolder) || path.isAbsolute(pathToFolder);
 
-      const isDirectory = await this.isDirectory(folder);
+      const folder = isValidPath ? (path.isAbsolute(pathToFolder) ? path.resolve(currentPathDir, pathToFolder) : pathToFolder) : newPath;
 
-      if (!isDirectory) {
-        throw new Error(errorOperationFailed);
+
+      if (isDir) {
+        const isDirectory = await this.isDirectory(folder);
+
+        if (!isDirectory) {
+          throw new Error(errorOperationFailed);
+        }
+
+        this.state.setState({ currentPathDir: folder });
+      } else {
+        const isFile = await this.isFile(folder);
+
+        if (!isFile) {
+          throw new Error(errorOperationFailed);
+        }
+
+        this.state.setState({ pathToFile: folder });
       }
 
-      this.state.setState({ currentPathDir: folder });
     } catch (error) {
       console.log(errorOperationFailed);
     }
@@ -31,5 +45,10 @@ export class Navigation {
   async isDirectory(dir) {
     const stat = await fs.promises.stat(dir);
     return stat.isDirectory();
+  }
+
+  async isFile(dir) {
+    const stat = await fs.promises.stat(dir);
+    return stat.isFile();
   }
 }
