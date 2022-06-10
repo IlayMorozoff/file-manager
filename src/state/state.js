@@ -1,19 +1,17 @@
 export class State {
-
-  #state;
   constructor(data) {
-    this.#state = data;
+    this.state = data;
   }
 
-  setState(data) {
-    this.#state = {
-      ...this.#state,
-      ...data
+  setState(newData) {
+    this.state = {
+      ...this.state,
+      ...newData
     };
   }
 
   getState() {
-    return this.#state;
+    return this.state;
   }
 
 }

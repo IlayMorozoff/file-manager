@@ -1,5 +1,6 @@
 import path from 'path';
 import fs from 'fs';
+import { pipeline } from 'stream/promises';
 
 export class OperationsWithFiles {
   constructor(state) {
@@ -35,40 +36,47 @@ export class OperationsWithFiles {
       ws.write('');
       console.log('the file was created successfully');
     } catch (error) {
-      console.log('Operation failed');
+      console.log(error ? '' : 'Operation failed');
     }
   }
 
-  async deleteFile(isLog) {
+  async deleteFile() {
     try {
       const pathToFile = this.state.getState().pathToFile;
       await fs.promises.rm(pathToFile);
       this.state.setState({ pathToFile: '' });
-      console.log(isLog ? 'the file was successfully deleted' : '');
-    } catch (error) { }
+      console.log('the file was successfully deleted');
+    } catch (error) {
+      console.log(error ? '' : 'Operation failed');
+    }
   }
 
   async renameFile(filename) {
-    return new Promise((resolve, reject) => {
+    try {
       const pathToFile = this.state.getState().pathToFile;
+      await fs.promises.rename(pathToFile, path.join(path.parse(pathToFile).dir, filename));
+      console.log(pathToFile, path.join(path.parse(pathToFile).dir, filename));
+    } catch (error) {
+      console.log(error ? '' : 'Operation failed');
+    }
+  }
 
-      console.log(path.parse(pathToFile).dir);
-      const rs = fs.createReadStream(path.join(pathToFile));
+  async copyFile() {
+    try {
+      const pathToFile = this.state.getState().pathToFile;
+      const pathToNewDir = this.state.getState().pathToNewDir;
 
-      const ws = fs.createWriteStream(path.join(path.parse(pathToFile).dir, filename));
-      rs.pipe(ws);
+      const rs = fs.createReadStream(pathToFile);
+      const ws = fs.createWriteStream(path.join(pathToNewDir, path.parse(pathToFile).base));
 
-      rs.on('end', async () => {
-        await this.deleteFile();
-        resolve();
-      });
+      await pipeline(rs, ws);
+    } catch (error) {
+      console.log(error ? '' : 'Operation failed');
+    }
+  }
 
-      rs.on('error', () => {
-        reject('Operation failed');
-      });
-
-    }).catch(() => {
-      console.log('Operation failed')
-    });
+  async moveFile() {
+    await this.copyFile();
+    await this.deleteFile();
   }
 }
