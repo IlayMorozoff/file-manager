@@ -1,9 +1,11 @@
+import fs from 'fs';
 import { Navigation, errorOperationFailed } from '../navigation/navigation.js';
 import { Validator } from '../validator/validator.js';
 import { OperationsWithFiles } from '../operationsWithFiles/operationsWithFiles.js';
 import { OperatingSystemInfo } from '../operatingSystemInfo/operatingSystemInfo.js';
 import { HashCalculator } from '../hashCalculator/hashCalculator.js';
-import fs from 'fs';
+import { CompressDecompress } from '../compressDecompress/compressDecompress.js';
+import { FolderInfo } from '../folderInfo/folderInfo.js';
 
 export const errorInvalidInput = 'Invalid input';
 
@@ -11,18 +13,27 @@ export class CommandLine {
 
   constructor(state) {
     this.state = state;
+    this.folderInfo = new FolderInfo(this.state);
     this.navigation = new Navigation(this.state);
     this.operationsWithFiles = new OperationsWithFiles(this.state);
     this.validator = new Validator();
     this.operatingSystemInfo = new OperatingSystemInfo();
     this.hashCalculator = new HashCalculator(this.state);
+    this.compressDecompress = new CompressDecompress(this.state);
     this.startProcess();
   }
 
   async startProcess() {
     try {
       process.stdin.on('data', async (data) => {
-        const command = data.toString().trim().split(' ').filter((item) => item);
+
+        let command = data.toString().trim().split("'").filter((item) => !!item).join('').split('"').filter((item) => !!item && item !== ' ').map((item) => item.trim());
+
+        if (command.some((el) => el.includes(' ')) && this.validator.isInvalidInput(command[0])) {
+
+        } else {
+          command = data.toString().trim().split(' ').filter((item) => item);
+        }
 
         if (!this.validator.isInvalidInput(command[0])) {
           console.log(errorInvalidInput);
@@ -35,10 +46,10 @@ export class CommandLine {
             this.closeProccess();
             break;
           case 'ls':
-            const pathToCurrentFolder = this.state.getState().currentPathDir;
-            const filesAndFoldes = await fs.promises.readdir(pathToCurrentFolder);
-            for (let el of filesAndFoldes) {
-              console.log(el);
+            if (command.length === 1) {
+              await this.folderInfo.showInfo();
+            } else {
+              console.log(errorOperationFailed);
             }
             break;
           case 'up':
@@ -99,25 +110,47 @@ export class CommandLine {
             } else {
               console.log(errorOperationFailed);
             }
-          break;
-        case 'os':
-          if (command.length === 2) {
-            this.operatingSystemInfo.showData(pathToDir);
-          } else {
-            console.log(errorOperationFailed);
-          }
-          break;
-        case 'hash':
-          await this.navigation.moveToDir(pathToDir, false)
-          this.hashCalculator.calculateHash();
-          break;
+            break;
+          case 'os':
+            if (command.length === 2) {
+              this.operatingSystemInfo.showData(command[1]);
+            } else {
+              console.log(errorOperationFailed);
+            }
+            break;
+          case 'hash':
+            if (command.length === 2) {
+              await this.navigation.moveToDir(command[1], false)
+              await this.hashCalculator.calculateHash();
+            } else {
+              console.log(errorOperationFailed);
+            }
+            break;
+          case 'compress':
+            if (command.length === 3) {
+              await this.navigation.moveToDir(command[2], true, true);
+              await this.navigation.moveToDir(command[1], false);
+              await this.compressDecompress.compressFile();
+            } else {
+              console.log(errorOperationFailed);
+            }
+            break;
+          case 'decompress':
+            if (command.length === 3) {
+              await this.navigation.moveToDir(command[2], true, true);
+              await this.navigation.moveToDir(command[1], false);
+              await this.compressDecompress.decompressFile();
+            } else {
+              console.log(errorOperationFailed);
+            }
+            break;
         }
 
         this.printCurrentPathToWorkingDir();
       });
       process.on('SIGINT', this.closeProccess.bind(this));
     } catch (error) {
-      console.log(errorInvalidInput); 
+      console.log(errorInvalidInput);
     }
   }
 

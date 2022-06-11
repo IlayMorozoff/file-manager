@@ -15,7 +15,9 @@ export class Navigation {
 
     const isValidPath = pathToFolder.includes(currentPathDir) || currentPathDir.includes(pathToFolder) || path.isAbsolute(pathToFolder);
 
-    const folder = isValidPath ? (path.isAbsolute(pathToFolder) ? path.join(path.parse(process.cwd()).root, pathToFolder) : pathToFolder) : newPath;
+
+
+    const folder = isValidPath ? (path.isAbsolute(pathToFolder) ? path.resolve(pathToFolder) : pathToFolder) : newPath;
 
     return folder;
   }
@@ -24,6 +26,8 @@ export class Navigation {
     try {
 
       const folder = this.getPath(pathToFolder);
+
+      console.log(folder)
 
       if (isDir && !isNewPathToFolder) {
         const isDirectory = await this.isDirectory(folder);

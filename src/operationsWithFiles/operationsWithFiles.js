@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import { pipeline } from 'stream/promises';
+import { errorOperationFailed } from '../navigation/navigation.js'
 
 export class OperationsWithFiles {
   constructor(state) {
@@ -22,10 +23,10 @@ export class OperationsWithFiles {
       })
 
       rs.on('error', () => {
-        reject('Operation failed')
+        reject(errorOperationFailed)
       })
-    }).catch(() => {
-      console.log('Operation failed')
+    }).catch((err) => {
+      console.log(err ? '' : errorOperationFailed);
     })
   }
 
@@ -36,7 +37,7 @@ export class OperationsWithFiles {
       ws.write('');
       console.log('the file was created successfully');
     } catch (error) {
-      console.log(error ? '' : 'Operation failed');
+      console.log(error ? '' : errorOperationFailed);
     }
   }
 
@@ -47,7 +48,7 @@ export class OperationsWithFiles {
       this.state.setState({ pathToFile: '' });
       console.log('the file was successfully deleted');
     } catch (error) {
-      console.log(error ? '' : 'Operation failed');
+      console.log(error ? '' : errorOperationFailed);
     }
   }
 
@@ -55,9 +56,9 @@ export class OperationsWithFiles {
     try {
       const pathToFile = this.state.getState().pathToFile;
       await fs.promises.rename(pathToFile, path.join(path.parse(pathToFile).dir, filename));
-      console.log(pathToFile, path.join(path.parse(pathToFile).dir, filename));
+      console.log('the file has been renamed successfully');
     } catch (error) {
-      console.log(error ? '' : 'Operation failed');
+      console.log(error ? '' : errorOperationFailed);
     }
   }
 
@@ -70,13 +71,20 @@ export class OperationsWithFiles {
       const ws = fs.createWriteStream(path.join(pathToNewDir, path.parse(pathToFile).base));
 
       await pipeline(rs, ws);
+
+      console.log('the file has been copied successfully');
     } catch (error) {
-      console.log(error ? '' : 'Operation failed');
+      console.log(error ? '' : errorOperationFailed);
     }
   }
 
   async moveFile() {
-    await this.copyFile();
-    await this.deleteFile();
+    try {
+      await this.copyFile();
+      await this.deleteFile();
+      console.log('the file was successfully transferred');
+    } catch (error) {
+      console.log(error ? '' : errorOperationFailed);
+    }
   }
 }
